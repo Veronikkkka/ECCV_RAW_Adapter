@@ -4,9 +4,12 @@ import os
 import os.path as osp
 
 from mmengine.config import Config, DictAction
-from mmengine.runner import Runner
+from mmengine.runner import Runner, load_checkpoint
+from mmengine.registry import MODELS
+from mmseg.models import build_segmentor
+import torch
 
-
+from cross_attention import modify_backbone_attention
 # TODO: support fuse_conv_bn, visualization, and format_only
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -113,11 +116,24 @@ def main():
         cfg.test_evaluator['keep_results'] = True
 
     # build the runner from config
-    runner = Runner.from_cfg(cfg)
+    # runner = Runner.from_cfg(cfg)
 
+    # print("HERE HERE HERE")
+    # print(runner.model)
+    # print(type(runner.model))
     # start testing
-    runner.test()
-
+    # runner.test()
+    model = build_segmentor(cfg.model)
+    print("Model type", type(model))
+    model = modify_backbone_attention(model)
+    # load_checkpoint(model, args.checkpoint, map_location='cpu')
+    filename = args.checkpoint
+    checkpoint = torch.load(filename, map_location='cpu', weights_only=False)
+    cfg.model = model
+    runner = Runner.from_cfg(cfg)
+    print("HERE HERE HERE")
+    print(runner.model)
+    print(type(runner.model))
 
 if __name__ == '__main__':
     main()

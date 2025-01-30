@@ -5,9 +5,10 @@ from typing import Any, Dict, List, Optional, Sequence
 import torch
 from mmengine.model import BaseDataPreprocessor
 
-from mmseg.registry import MODELS
+# from mmseg.registry import MODELS
 from mmseg.utils import stack_batch
 
+from mmengine.registry import MODELS
 
 @MODELS.register_module()
 class SegDataPreProcessor(BaseDataPreprocessor):
