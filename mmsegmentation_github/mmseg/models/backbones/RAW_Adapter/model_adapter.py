@@ -107,6 +107,8 @@ class Merge_block(BaseModule):
         self.return_ada = return_ada
         if self.return_ada:
             self.conv_3 = conv3x3(mid_c, ada_c*2, stride=2)
+        else:
+            self.conv_3 = None
         
 
     def forward(self, fea, adapter, ratio=1.0):

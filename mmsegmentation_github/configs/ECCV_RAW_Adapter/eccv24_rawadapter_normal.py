@@ -77,7 +77,7 @@ optim_wrapper = dict(
 
 # dataset settings
 dataset_type = 'ADE20KDataset'
-data_root = './data/ADE20K/ADEChallengeData2016'
+data_root = '/home/paperspace/Documents/nika_space/ADE20K/ADEChallengeData2016'
 crop_size = (512, 512)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -147,13 +147,13 @@ test_evaluator = val_evaluator
 
 param_scheduler = [
     dict(
-        type='LinearLR', start_factor=1e-6, by_epoch=False, begin=0, end=1500),
+        type='LinearLR', start_factor=1e-6, by_epoch=False, begin=0, end=150),
     dict(
         type='PolyLR',
         eta_min=0.0,
         power=1.0,
-        begin=1500,
-        end=80000,
+        begin=150,
+        end=1000,
         by_epoch=False,
     )
 ]

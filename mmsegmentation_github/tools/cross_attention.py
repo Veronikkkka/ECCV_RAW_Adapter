@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from mmseg.models.backbones.raw_mit import Merge_block
+from mmengine.model import BaseModule
 class ModifiedAttention(nn.Module):
     """Modified version that keeps checkpoint compatibility and supports cross-attention"""
     def __init__(self, embed_dims, num_heads, attn_drop=0., proj_drop=0., 
@@ -104,4 +105,97 @@ def modify_backbone_attention(model):
 
                 parent.attn = new_attn
                 
+    return model
+
+import torch.nn as nn
+
+def conv1x1(in_channels, out_channels, stride=1):
+    """1x1 Convolution"""
+    return nn.Conv2d(
+        in_channels, out_channels, kernel_size=1, stride=stride, bias=False
+    )
+
+def conv3x3(in_channels, out_channels, stride=1, padding=1):
+    """3x3 Convolution"""
+    return nn.Conv2d(
+        in_channels, out_channels, kernel_size=3, stride=stride, padding=padding, bias=False
+    )
+
+
+class CrossAttention_block(BaseModule):
+    def __init__(self, fea_c, ada_c, mid_c, return_ada=True):
+        super(CrossAttention_block, self).__init__()
+        
+        # Q, K, V projections for feature map
+        self.q_proj = conv1x1(fea_c, mid_c, 1)
+        self.k_proj = conv1x1(ada_c, mid_c, 1)
+        self.v_proj = conv1x1(ada_c, mid_c, 1)
+        
+        # Output projection
+        self.out_proj = conv1x1(mid_c, fea_c, 1)
+        
+        # Scaling factor for attention
+        self.scale = mid_c ** -0.5
+        
+        self.return_ada = return_ada
+        if self.return_ada:
+            # Downsample adapter for next level
+            self.ada_down = conv3x3(ada_c, ada_c*2, stride=2)
+    
+    def forward(self, fea, adapter, ratio=1.0):
+        B, C, H, W = fea.shape
+        
+        # Compute Q, K, V
+        q = self.q_proj(fea).view(B, -1, H*W).transpose(-2, -1)  # B, HW, C
+        k = self.k_proj(adapter).view(B, -1, H*W)  # B, C, HW
+        v = self.v_proj(adapter).view(B, -1, H*W).transpose(-2, -1)  # B, HW, C
+        
+        # Compute attention scores
+        attn = torch.bmm(q, k) * self.scale  # B, HW, HW
+        attn = torch.softmax(attn, dim=-1)
+        
+        # Apply attention to values
+        out = torch.bmm(attn, v)  # B, HW, C
+        out = out.transpose(-2, -1).view(B, -1, H, W)  # B, C, H, W
+        
+        # Project back to feature dimension
+        out = self.out_proj(out)
+        
+        # Residual connection with scaling
+        fea_out = ratio * out + fea
+        
+        if self.return_ada:
+            # Downsample adapter for next level
+            ada = self.ada_down(adapter)
+            return fea_out, ada
+        else:
+            return fea_out, None
+
+
+def modify_model(model):
+    """Custom logic to replace Merge_block with CrossAttention_block."""
+    for name, module in model.named_modules():
+        # Check if the module is an instance of Merge_block
+        if isinstance(module, Merge_block):
+            print(f"Replacing {name} with CrossAttention_block")
+
+            if module.conv_3 is not None:
+                ada_c = module.conv_3.out_channels // 2
+            else:
+                ada_c = 0
+            fea_c = module.conv_1.in_channels - ada_c
+            # ada_c = module.conv_3.out_channels // 2
+            mid_c = module.conv_1.out_channels
+            return_ada = module.return_ada
+
+            # Create an instance of CrossAttention_block with the same parameters
+            new_module = CrossAttention_block(fea_c, ada_c, mid_c, return_ada=return_ada)
+
+            # Replace the module in the model
+            parent_name = '.'.join(name.split('.')[:-1])
+            parent = model
+            for part in parent_name.split('.'):
+                parent = getattr(parent, part)
+            setattr(parent, name.split('.')[-1], new_module)
+
     return model
