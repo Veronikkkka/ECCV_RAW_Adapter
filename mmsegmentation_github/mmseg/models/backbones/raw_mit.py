@@ -432,12 +432,14 @@ class RAW_MixVisionTransformer(BaseModule):
         self.w_lut = w_lut  # with or without implicit 3D LUT
         self.pre_encoder = Input_level_Adapeter(mode = light_mode, lut_dim = lut_dim, k_size=k_size, w_lut=self.w_lut)
         
+       
         self.model_adapter = Model_level_Adapeter(in_c=3, in_dim=ada_c_s[0], w_lut=self.w_lut)
         self.merge_1 = Merge_block(fea_c=fea_c_s[0], ada_c=ada_c_s[0], mid_c=mid_c_s[0], return_ada=True)
         self.merge_2 = Merge_block(fea_c=fea_c_s[1], ada_c=ada_c_s[1], mid_c=mid_c_s[1], return_ada=True)
         self.merge_3 = Merge_block(fea_c=fea_c_s[2], ada_c=ada_c_s[2], mid_c=mid_c_s[2], return_ada=False)
         self.merge_blocks = [self.merge_1, self.merge_2, self.merge_3]
         self.merge_ratio = merge_ratio  # Feature Merge Ratio
+        print("BLOCK NUMS: ", len(self.merge_blocks), len(self.layers))
 
     def init_weights(self):
         if self.init_cfg is None:
@@ -457,9 +459,14 @@ class RAW_MixVisionTransformer(BaseModule):
 
     def forward(self, x):
         outs = []
-
+        print("Original x: ", x)
+        from torchvision.transforms.functional import to_pil_image
+        import time
+        img = to_pil_image(x[1]) 
+        img.save("test_1.png")
+        time.sleep(2)
         x = self.pre_encoder(x)
-
+        print("X after input level adapter: ", x)
         if self.w_lut:  # I1, I2, I3, I4
             ada = self.model_adapter([x[0], x[1], x[2], x[3]])
         else:   # I1, I2, I3
@@ -478,7 +485,8 @@ class RAW_MixVisionTransformer(BaseModule):
             if i in self.out_indices:
                 outs.append(x)
 
-            if i <=2:    
+            if i <=2:   
+                print("I:", i) 
                 x, ada = self.merge_blocks[i](x, ada, ratio=self.merge_ratio)
             
 

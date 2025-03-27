@@ -161,6 +161,8 @@ class CrossAttention_block(BaseModule):
 def modify_model(model):
     """Custom logic to replace Merge_block with CrossAttention_block."""
     for name, module in model.named_modules():
+
+
         if isinstance(module, Merge_block):
             print(f"TTTT")
 

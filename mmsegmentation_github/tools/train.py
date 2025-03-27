@@ -9,7 +9,8 @@ from mmengine.logging import print_log
 from mmengine.runner import Runner
 
 from mmseg.registry import RUNNERS
-from cross_attention import modify_model
+from tools.cross_attention import modify_model
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a segmentor')
@@ -92,7 +93,7 @@ def main():
         # build the default runner
         print("HERE")
         runner = Runner.from_cfg(cfg)
-        runner.model = modify_model(runner.model)
+        # runner.model = modify_model(runner.model)
     else:
         # build customized runner from the registry
         # if 'runner_type' is set in the cfg

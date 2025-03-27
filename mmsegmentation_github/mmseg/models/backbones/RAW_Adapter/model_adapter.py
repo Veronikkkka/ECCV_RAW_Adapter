@@ -102,6 +102,9 @@ class Merge_block(BaseModule):
     def __init__(self, fea_c, ada_c, mid_c, return_ada=True):
         super(Merge_block, self).__init__()
 
+        print("FEA C", fea_c, ada_c)
+        self.fea_c = fea_c
+        self.ada_c = ada_c
         self.conv_1 = conv1x1(fea_c+ada_c, mid_c, 1)
         self.conv_2 = conv1x1(mid_c, fea_c, 1)
         self.return_ada = return_ada
@@ -112,10 +115,11 @@ class Merge_block(BaseModule):
         
 
     def forward(self, fea, adapter, ratio=1.0):
+        print("FEA original: ", fea.shape, adapter.shape, self.fea_c, self.ada_c)
         
         res = fea
         fea = torch.cat([fea, adapter], dim=1)
-        
+        print("FEA after cat: ", fea.shape, adapter.shape)
         fea = self.conv_1(fea)
         ada = self.conv_2(fea)
         fea_out = ratio*ada + res

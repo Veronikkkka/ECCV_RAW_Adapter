@@ -147,13 +147,13 @@ test_evaluator = val_evaluator
 
 param_scheduler = [
     dict(
-        type='LinearLR', start_factor=1e-6, by_epoch=False, begin=0, end=150),
+        type='LinearLR', start_factor=1e-6, by_epoch=False, begin=0, end=1500),
     dict(
         type='PolyLR',
         eta_min=0.0,
         power=1.0,
-        begin=150,
-        end=1000,
+        begin=1500,
+        end=80000,
         by_epoch=False,
     )
 ]

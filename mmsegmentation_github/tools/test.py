@@ -132,6 +132,8 @@ def main():
     # cfg.model = model
     runner = Runner.from_cfg(cfg)
     runner.model = modify_model(runner.model)
+    runner.test()
+
     # print("HERE HERE HERE")
     # print(runner.model)
     # print(type(runner.model))
